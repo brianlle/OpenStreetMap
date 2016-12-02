@@ -1,0 +1,4 @@
+Location used for project: San Jose, CA
+
+https://mapzen.com/data/metro-extracts/metro/san-jose_california/
+https://www.openstreetmap.org/relation/112143
