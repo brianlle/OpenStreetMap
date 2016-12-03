@@ -14909,7 +14909,7 @@ else:
     return name
 
 </code></pre>
-<p>- In both nodes_tags and ways_tags, tags with the key "state" all expectedly return some variation of California. "CA" is the most common in the dataset and also the standard way of abbreviating the state of California in addresses, so to standardize, we will convert other instances ("California", "Ca", and "ca") to "CA". Since we are working with an area entirely within the California state borders, we can use the function below which will update the value to "CA" if the key is 'state".</p>
+<p>- In both nodes_tags and ways_tags, tags with the key "addr:state" or "is_in:state" all expectedly return some variation of California. "CA" is the most common in the dataset and also the standard way of abbreviating the state of California in addresses, so to standardize, we will convert other instances ("California", "Ca", and "ca") to "CA". Since we are working with an area entirely within the California state borders, we can use the function below which will update the key-value pair to "addr:state"-"CA" if the key is "addr:state" or "is_in:state".</p>
 <p>def check_state(element):
     '''
     This function checks if the tag key is "state". If it is,
@@ -14917,10 +14917,24 @@ else:
     the key. If not, then it will return the original tag value.
     '''</p>
 
-<pre><code>if element.attrib['k'] == "state":
+<pre><code>if element.attrib['k'] == "addr:state":
+    return "CA"
+if element.attrib['k'] == "is_in:state":
     return "CA"
 else:
-    return element.attrib['v']</code></pre>
+    return element.attrib['v']
+
+</code></pre>
+<p>- Lastly, zip codes (with the key "addr:postcode") are listed either in their 5-digit form (e.g. 95125), as a ZIP+4 code (e.g. 95014-2036), or, in rare cases, something like "CA 94035". Using regular expressions, we can strip out the 5-digit code in all 3 cases and use that as the standard way of storing a zip code. The following function does just that, and we apply it to all XML elements with the key "addr:postcode".</p>
+<p>def correct_zip(value):</p>
+
+<pre><code>zip_re = re.compile(r'\d{5}')
+match = zip_re.search(value)
+
+if match is not None:
+    return match.group()
+else:
+    return value</code></pre>
 
 </div>
 </div>
@@ -15160,7 +15174,8 @@ WHERE query.key="wikipedia";</p>
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Suggestions-for-improvement">Suggestions for improvement<a class="anchor-link" href="#Suggestions-for-improvement">&#182;</a></h2><p>This dataset provides a good look into the San Jose metropolitan area. However, the dataset itself is very clearly incomplete, as evidenced by the very last exploratory look where only 6 of 50 Subway locations are tagged as cafes. Improved and consistent tagging of locations such as these would allow for more accurate exploration of the data; however, implementing this on a programmatic basis would be difficult as individual exceptions would likely have to be programmed for each case such as creating a corresponding "cafe" tag for all Subway locations (or, alternatively, removing the tag). While that would be simple enouogh for Subway, individual chains (cafe, fast food, restaurant, bank, or otherwise) would need their own self-consistency checks. Perhaps one way to update the data would be to utilize information stored on Yelp. The Yelp API presumably could return information about locations such as Subway and create a set of associated tags, which would then be added as tags to each location in OpenStreetMap.</p>
+<h2 id="Suggestions-for-improvement">Suggestions for improvement<a class="anchor-link" href="#Suggestions-for-improvement">&#182;</a></h2><p>This dataset provides a good look into the San Jose metropolitan area. However, the dataset itself is very clearly incomplete, as evidenced by the very last exploratory look where only 6 of 50 Subway locations are tagged as cafes. Improved and consistent tagging of locations such as these would allow for more accurate exploration of the data; however, implementing this on a programmatic basis would be difficult as individual exceptions would likely have to be programmed for each case such as creating a corresponding "cafe" tag for all Subway locations (or, alternatively, removing the tag). While that would be simple enough for Subway, individual chains (cafe, fast food, restaurant, bank, or otherwise) would need their own self-consistency checks.</p>
+<p>Perhaps one way to update the data would be to utilize information stored on Yelp. The Yelp API presumably could return information about locations such as Subway and create a set of associated tags, which would then be added as tags to each location in OpenStreetMap. Naturally, combining two different datasets together can yield new problems. In OpenStreetMap data, "postcode" refers to the zip code; it's possible that in the Yelp API, this information is stored as "zip code". Reconciliations such as these would likely need to be applied.</p>
 
 </div>
 </div>

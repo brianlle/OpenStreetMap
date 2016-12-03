@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 import xml.etree.cElementTree as ET
 import pprint
@@ -21,9 +21,10 @@ filename = "san-jose_california.osm"  #update filepath as necessary
 # In[3]:
 
 def count_tags(filename):
-    
-    #Use this function to count the different tag labels in the entire document
-    
+    '''
+    Tis function counts the different tag labels in an XML file and returns
+    a dictionary showing the number of times each tag label appears
+    '''
     dictionary = {}
     treeiter = ET.iterparse(filename)
     for event, child in treeiter:
@@ -39,11 +40,11 @@ def count_tags(filename):
 # In[6]:
 
 def key_type(element, keys):
-    
-    # The key_type function and the following process_map functions were used to
-    # see what kind of formatting the keys ("k"-attribute) were in by matching against
-    # pre-defined regular expressions.
-    
+    '''
+    The key_type function and the following process_map functions were used to
+    see what kind of formatting the keys ("k"-attribute) were in by matching against
+    pre-defined regular expressions.
+    '''
     lower = re.compile(r'^([a-z]|_)*$')
     lower_colon = re.compile(r'^([a-z]|_)*:([a-z]|_)*$')
     problemchars = re.compile(r'[=\+/&<>;\'"\?%#$@\,\. \t\r\n]')
@@ -76,11 +77,11 @@ def process_map(filename):
 # In[8]:
 
 def audit_street_type(street_types, street_name):
-    
-    # This function creates a dictionary matching the last word in a street address to the number of times
-    # that word occurs if the word is not in our expected list of entries. Then we make a decision
-    # to convert those words using the update_name function below.
-    
+    '''
+    This function creates a dictionary matching the last word in a street address to the number of times
+    that word occurs if the word is not in our expected list of entries. Then we make a decision
+    to convert those words using the update_name function below.
+    '''
     street_type_re = re.compile(r'\b\S+\.?$', re.IGNORECASE)
     expected = ["Street", "Avenue", "Boulevard", "Drive", "Court", "Place", "Square", "Lane", "Road", 
             "Trail", "Parkway", "Commons", "Way", "Terrace", "Circle", "Expressway"]
@@ -162,10 +163,25 @@ def check_state(element):
     the key. If not, then it will return the original tag value.
     '''
     
-    if element.attrib['k'] == "state":
+    if element.attrib['k'] == "addr:state":
+        return "CA"
+    if element.attrib['k'] == "is_in:state":
         return "CA"
     else:
         return element.attrib['v']
+
+
+# In[2]:
+
+def correct_zip(value):
+    
+    zip_re = re.compile(r'\d{5}')
+    match = zip_re.search(value)
+    
+    if match is not None:
+        return match.group()
+    else:
+        return value
 
 
 # In[ ]:
@@ -224,6 +240,8 @@ def shape_element(element, node_attr_fields=NODE_FIELDS, way_attr_fields=WAY_FIE
                     tagDict['type'] = 'regular'
                 if is_street_name(tag):    #if tag is a street name, update name if necessary
                     tagDict['value'] = update_name(tag.attrib['v'],mapping)
+                elif tagDict['key'] == 'postcode':
+                    tagDict['value'] = correct_zip(tag.attrib['v'])
                 else:
                     tagDict['value'] = check_state(tag)
                 tags.append(tagDict)
@@ -257,6 +275,8 @@ def shape_element(element, node_attr_fields=NODE_FIELDS, way_attr_fields=WAY_FIE
                     tagDict['type'] = 'regular'
                 if is_street_name(tag):    #if tag is a street name, update name if necessary
                     tagDict['value'] = update_name(tag.attrib['v'],mapping)
+                elif tagDict['key'] == 'postcode':
+                    tagDict['value'] = correct_zip(tag.attrib['v'])
                 else:
                     tagDict['value'] = check_state(tag)
                 tags.append(tagDict)
