@@ -14897,12 +14897,30 @@ else:
 </code></pre>
 <p>- One street address in particular was labeled "Hwy 17 PM 7.1" and had associated latitude and longitude coordinates corresponding to a location on Loma Alta Avenue in Los Gatos, CA (<a href="https://www.google.com/maps/place/37°13'12.0"N+121°58'12.0"W/@37.2212714,-121.978025,15.44z">https://www.google.com/maps/place/37°13'12.0"N+121°58'12.0"W/@37.2212714,-121.978025,15.44z</a>). This is near Highway 17, leading me to believe there is some connection, but as this node is very clearly not on Highway 17, this was likely tagged incorrectly and the problem is easily remedied by removing this tag.</p>
 <p>- There were two tags (one node tag and one way tag) with a "k"-attribute labelled "old_amenity", whereas the standard used in the rest of the data was "amenity". Some "k"-attributes were listed as "abandoned:amenity" or similar, so we will implement a function to change "old_amenity" to "old:amenity" in order to preserve the data while correctly returning "amenity" as the key when implementing the code to convert to csv for importing to SQL.</p>
-<p>def check_k(name):</p>
+<p>def check_k(name):
+    '''
+    This function converts the key from old_amenity to old:amenity in the 2 entries
+    where old_amenity occurs in the San Jose dataset
+    '''</p>
 
 <pre><code>if name == "old_amenity":
     return "old:amenity"
 else:
-    return name</code></pre>
+    return name
+
+</code></pre>
+<p>- In both nodes_tags and ways_tags, tags with the key "state" all expectedly return some variation of California. "CA" is the most common in the dataset and also the standard way of abbreviating the state of California in addresses, so to standardize, we will convert other instances ("California", "Ca", and "ca") to "CA". Since we are working with an area entirely within the California state borders, we can use the function below which will update the value to "CA" if the key is 'state".</p>
+<p>def check_state(element):
+    '''
+    This function checks if the tag key is "state". If it is,
+    then it will return "CA" as the value to be associated with
+    the key. If not, then it will return the original tag value.
+    '''</p>
+
+<pre><code>if element.attrib['k'] == "state":
+    return "CA"
+else:
+    return element.attrib['v']</code></pre>
 
 </div>
 </div>
@@ -14928,11 +14946,24 @@ else:
 
 </div>
 </div>
-</div>SELECT key, COUNT(\*) FROM nodes_tags
-    GROUP BY key
-    ORDER BY COUNT(\*)
-    DESC LIMIT 10
-    ;
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span></span><span class="n">SELECT</span> <span class="n">key</span><span class="p">,</span> <span class="n">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="n">FROM</span> <span class="n">nodes_tags</span>
+    <span class="n">GROUP</span> <span class="n">BY</span> <span class="n">key</span>
+    <span class="n">ORDER</span> <span class="n">BY</span> <span class="n">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+    <span class="n">DESC</span> <span class="n">LIMIT</span> <span class="mi">10</span>
+    <span class="p">;</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
 <div class="cell border-box-sizing text_cell rendered">
 <div class="prompt input_prompt">
 </div>
@@ -14987,13 +15018,26 @@ WHERE query.key="wikipedia";</p>
 <h3 id="What-kind-of-amenities-are-in-the-area?">What kind of amenities are in the area?<a class="anchor-link" href="#What-kind-of-amenities-are-in-the-area?">&#182;</a></h3>
 </div>
 </div>
-</div>SELECT value, COUNT(*)
-    FROM nodes_tags
-    WHERE key='amenity'
-    GROUP BY value
-    ORDER BY COUNT(*) DESC
-    LIMIT 10
-    ;
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span></span><span class="n">SELECT</span> <span class="n">value</span><span class="p">,</span> <span class="n">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span>
+    <span class="n">FROM</span> <span class="n">nodes_tags</span>
+    <span class="n">WHERE</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;amenity&#39;</span>
+    <span class="n">GROUP</span> <span class="n">BY</span> <span class="n">value</span>
+    <span class="n">ORDER</span> <span class="n">BY</span> <span class="n">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="n">DESC</span>
+    <span class="n">LIMIT</span> <span class="mi">10</span>
+    <span class="p">;</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
 <div class="cell border-box-sizing text_cell rendered">
 <div class="prompt input_prompt">
 </div>
@@ -15015,14 +15059,27 @@ WHERE query.key="wikipedia";</p>
 
 </div>
 </div>
-</div>SELECT nodes_tags.value, COUNT(\*) as num FROM nodes_tags 
-    JOIN (SELECT DISTINCT(id) FROM nodes_tags WHERE value="bank") as query
-    ON nodes_tags.id=query.id
-    WHERE nodes_tags.key="name"
-    GROUP BY nodes_tags.value
-    ORDER BY num DESC
-    LIMIT 10
-    ;
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span></span><span class="n">SELECT</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="k">as</span> <span class="n">num</span> <span class="n">FROM</span> <span class="n">nodes_tags</span> 
+    <span class="n">JOIN</span> <span class="p">(</span><span class="n">SELECT</span> <span class="n">DISTINCT</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span> <span class="n">FROM</span> <span class="n">nodes_tags</span> <span class="n">WHERE</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;bank&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">query</span>
+    <span class="n">ON</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">id</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">id</span>
+    <span class="n">WHERE</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">key</span><span class="o">=</span><span class="s2">&quot;name&quot;</span>
+    <span class="n">GROUP</span> <span class="n">BY</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">ORDER</span> <span class="n">BY</span> <span class="n">num</span> <span class="n">DESC</span>
+    <span class="n">LIMIT</span> <span class="mi">10</span>
+    <span class="p">;</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
 <div class="cell border-box-sizing text_cell rendered">
 <div class="prompt input_prompt">
 </div>
@@ -15044,14 +15101,27 @@ WHERE query.key="wikipedia";</p>
 
 </div>
 </div>
-</div>SELECT nodes_tags.value, COUNT(\*) as num FROM nodes_tags 
-    JOIN (SELECT DISTINCT(id) FROM nodes_tags WHERE value="cafe") as query
-    ON nodes_tags.id=query.id
-    WHERE nodes_tags.key="name"
-    GROUP BY nodes_tags.value
-    ORDER BY num DESC
-    LIMIT 10
-    ;
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In&nbsp;[&nbsp;]:</div>
+<div class="inner_cell">
+    <div class="input_area">
+<div class=" highlight hl-ipython2"><pre><span></span><span class="n">SELECT</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">COUNT</span><span class="p">(</span><span class="o">*</span><span class="p">)</span> <span class="k">as</span> <span class="n">num</span> <span class="n">FROM</span> <span class="n">nodes_tags</span> 
+    <span class="n">JOIN</span> <span class="p">(</span><span class="n">SELECT</span> <span class="n">DISTINCT</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span> <span class="n">FROM</span> <span class="n">nodes_tags</span> <span class="n">WHERE</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;cafe&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">query</span>
+    <span class="n">ON</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">id</span><span class="o">=</span><span class="n">query</span><span class="o">.</span><span class="n">id</span>
+    <span class="n">WHERE</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">key</span><span class="o">=</span><span class="s2">&quot;name&quot;</span>
+    <span class="n">GROUP</span> <span class="n">BY</span> <span class="n">nodes_tags</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">ORDER</span> <span class="n">BY</span> <span class="n">num</span> <span class="n">DESC</span>
+    <span class="n">LIMIT</span> <span class="mi">10</span>
+    <span class="p">;</span>
+</pre></div>
+
+</div>
+</div>
+</div>
+
+</div>
 <div class="cell border-box-sizing text_cell rendered">
 <div class="prompt input_prompt">
 </div>
@@ -15090,7 +15160,7 @@ WHERE query.key="wikipedia";</p>
 </div>
 <div class="inner_cell">
 <div class="text_cell_render border-box-sizing rendered_html">
-<h2 id="Suggestions-for-improvement">Suggestions for improvement<a class="anchor-link" href="#Suggestions-for-improvement">&#182;</a></h2><p>This dataset provides a good look into the San Jose metropolitan area. However, the dataset itself is very clearly incomplete, as evidenced by the very last exploratory look where only 6 of 50 Subway locations are tagged as cafes. Improved and consistent tagging of locations such as these would allow for more accurate exploration of the data; however, implementing this on a programmatic basis would be difficult as individual exceptions would likely have to be programmed for each case such as creating a corresponding "cafe" tag for all Subway locations (or, alternatively, removing the tag). While that would be simple enouogh for Subway, individual chains (cafe, fast food, restaurant, bank, or otherwise) would need their own self-consistency checks.</p>
+<h2 id="Suggestions-for-improvement">Suggestions for improvement<a class="anchor-link" href="#Suggestions-for-improvement">&#182;</a></h2><p>This dataset provides a good look into the San Jose metropolitan area. However, the dataset itself is very clearly incomplete, as evidenced by the very last exploratory look where only 6 of 50 Subway locations are tagged as cafes. Improved and consistent tagging of locations such as these would allow for more accurate exploration of the data; however, implementing this on a programmatic basis would be difficult as individual exceptions would likely have to be programmed for each case such as creating a corresponding "cafe" tag for all Subway locations (or, alternatively, removing the tag). While that would be simple enouogh for Subway, individual chains (cafe, fast food, restaurant, bank, or otherwise) would need their own self-consistency checks. Perhaps one way to update the data would be to utilize information stored on Yelp. The Yelp API presumably could return information about locations such as Subway and create a set of associated tags, which would then be added as tags to each location in OpenStreetMap.</p>
 
 </div>
 </div>
